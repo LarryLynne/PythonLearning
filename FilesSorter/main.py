@@ -3,10 +3,6 @@ import sys
 import shutil
 
 
-if __name__ == "__main__":
-    for param in sys.argv:
-        print(param)
-
 folders = {"archives": [], "video": [], "audio": [], "documents": [], "images": []}
 file_types = {
     'JPEG': "images", 'PNG': "images", 'JPG': "images", 'SVG': "images",
@@ -49,8 +45,8 @@ def normalize(filename: str) -> str:
 
 
 def create_folders(path: str):
-    for f in folders:
-        p = os.path.join(path, f)
+    for folder in folders:
+        p = os.path.join(path, folder)
         if not os.path.exists(p):
             os.mkdir(p)
 
@@ -75,21 +71,21 @@ def print_files(files: []):
         if os.path.isfile(file):
             ext = get_file_ext(file)
             filetype = file_types.get(ext.upper())
-            c = folders.get(filetype)
-            if c is not None:
-                c.append(os.path.basename(file))
+            files_by_type = folders.get(filetype)
+            if files_by_type is not None:
+                files_by_type.append(os.path.basename(file))
                 if known_exts.count(ext) == 0:
                     known_exts.append(ext)
             else:
                 if unknown_exts.count(ext) == 0:
                     unknown_exts.append(ext)
-    s = ""
+    files_by_cat = ""
     for k in folders.keys():
         if len(folders.get(k)) > 0:
-            s += k + ": \n"
+            files_by_cat += k + ": \n"
             for v in folders.get(k):
-                s += "\t" + v + "\n"
-    print(s)
+                files_by_cat += "\t" + v + "\n"
+    print(files_by_cat)
     kn_res = ""
     if len(known_exts) > 0:
         kn_res = "Known extentions:\n"
@@ -104,29 +100,34 @@ def print_files(files: []):
     print(u_res)
 
 
-def sort_files(files: str, path: str):
+def sort_files(files: [str], path: str):
     create_folders(path)
     for file in files:
         if os.path.isdir(file):
             r = list(folders.keys())
-            if len(os.listdir(file)) == 0 and r.count(os.path.basename(file)) == 0:
+            if not os.listdir(file) and r.count(os.path.basename(file)) == 0:
                 os.remove(file)
         else:
-            t = file_types.get(get_file_ext(file).upper())
-            if t is not None:
-                if t == "archives":
-                    shutil.unpack_archive(file, os.path.join(path, t, normalize(os.path.basename(file)).replace(get_file_ext(file), "")))
+            file_type = file_types.get(get_file_ext(file).upper())
+            if file_type is not None:
+                if file_type == "archives":
+                    shutil.unpack_archive(file, os.path.join(path, file_type, normalize(os.path.basename(file)).replace(get_file_ext(file), "")))
                     os.remove(file)
                 else:
-                    os.replace(file, os.path.join(path, t, normalize(os.path.basename(file))))
+                    os.replace(file, os.path.join(path, file_type, normalize(os.path.basename(file))))
 
 
-if sys.argv[0] == "":
-    pt = input("Путь:")
-else:
-    pt = sys.argv[1]
+def run():
+    if sys.argv[0] == "":
+        print("There is no args. Goodbye!")
+    else:
+        pt = sys.argv[1]
+        files = scan_dir(pt)
+        print_files(files)
+        sort_files(files, pt)
 
-files = scan_dir(pt)
-print_files(files)
-sort_files(files, pt)
 
+if __name__ == "__main__":
+    for param in sys.argv:
+        print(param)
+    run()
